@@ -7,7 +7,7 @@ import (
 
     "google.golang.org/grpc"
     "google.golang.org/grpc/credentials/insecure"
-    pb  "djhuang.top/cacheserver/cache"
+    pb  "hxzhong/cacheserver/cache"
 )
 
 func setupClient() {
@@ -27,36 +27,37 @@ func setupClient() {
 	}
     fmt.Println("Set up client for",address[3])
 
+	conn[2], err = grpc.Dial(address[4], opts...)
+	if err != nil {
+		fmt.Println("fail to dial: %v", err)
+	}
+    fmt.Println("Set up client for",address[4])
+
     client[0] = pb.NewCacheClient(conn[0])
     client[1] = pb.NewCacheClient(conn[1])
+    client[2] = pb.NewCacheClient(conn[2])
+	
 }
 
 // rpc client Get request
-func CacheGet(client pb.CacheClient, req *pb.GetRequest) {
+func CacheGet(client pb.CacheClient, req *pb.GetRequest) (interface{},error){
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	_, err := client.GetCache(ctx, req)
-	if err != nil {
-		fmt.Println("client.GetCache failed.")
-	}
+	getval, err:= client.GetCache(ctx, req)//getval is a pointer
+	return getval.Value,err
 }
 
-// rpc client Set request
-func CacheSet(client pb.CacheClient, req *pb.SetRequest) {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-	_, err := client.SetCache(ctx, req)
-	if err != nil {
-		fmt.Println("client.SetCache failed.")
-	}
-}
 
 // rpc client Delete request
-func CacheDelete(client pb.CacheClient, req *pb.DeleteRequest) {
+func CacheDelete(client pb.CacheClient, req *pb.DeleteRequest) (error){
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	_, err := client.DeleteCache(ctx, req)
 	if err != nil {
 		fmt.Println("client.DeleteCache failed.")
 	}
+	return err
 }
+
+
+

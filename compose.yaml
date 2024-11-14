@@ -11,3 +11,7 @@ services:
     build: .
     command: /root/server 3
     network_mode: host
+  server4:
+    build: .
+    command: /root/server 4
+    network_mode: host

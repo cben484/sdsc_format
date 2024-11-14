@@ -11,35 +11,46 @@ import (
     "io/ioutil"
 
     "google.golang.org/grpc"
-    pb  "djhuang.top/cacheserver/cache"
+    pb  "hxzhong/cacheserver/cache"
 )
 
 var server cacheServer // server instace
-var address [4]string
-var client[2] pb.CacheClient // 2 rpc client to communicate with the other 2 rpc server
-var conn[2] *grpc.ClientConn // 2 connection for 2 rpc client
+var address [5]string
+var client[3] pb.CacheClient // 2 rpc client to communicate with the other 2 rpc server
+var conn[3] *grpc.ClientConn // 2 connection for 2 rpc client
 
 func setAddress() {
     if os.Args[1] == "1" { // set address variable by server index
         address[0] = "127.0.0.1:9527" // this server's http server port 
-        address[1] = "127.0.0.1:9530" // this server's rpc server port
+        address[1] = "127.0.0.1:9550" // this server's rpc server port
 
-        address[2] = "127.0.0.1:9531" // another server's rpc server port
-        address[3] = "127.0.0.1:9532" // another server's rpc server port
+        address[2] = "127.0.0.1:9551" // another server's rpc server port
+        address[3] = "127.0.0.1:9552" // another server's rpc server port
+        address[4] = "127.0.0.1:9553"
     } else if os.Args[1] == "2" {
         address[0] = "127.0.0.1:9528"
-        address[1] = "127.0.0.1:9531"
+        address[1] = "127.0.0.1:9551"
 
-        address[2] = "127.0.0.1:9530"
-        address[3] = "127.0.0.1:9532"
+        address[2] = "127.0.0.1:9550"
+        address[3] = "127.0.0.1:9552"
+        address[4] = "127.0.0.1:9553"
     } else if os.Args[1] == "3" {
         address[0] = "127.0.0.1:9529"
-        address[1] = "127.0.0.1:9532"
+        address[1] = "127.0.0.1:9552"
 
-        address[2] = "127.0.0.1:9530"
-        address[3] = "127.0.0.1:9531"
-    } else {
-        fmt.Println("only 3 cacheserver.")
+        address[2] = "127.0.0.1:9550"
+        address[3] = "127.0.0.1:9551"
+        address[4] = "127.0.0.1:9553"
+    }else if os.Args[1] == "4"{
+        address[0] = "127.0.0.1:9526"
+        address[1] = "127.0.0.1:9553"
+
+        address[2] = "127.0.0.1:9550"
+        address[3] = "127.0.0.1:9551"
+        address[4] = "127.0.0.1:9552"
+    }
+     else {
+        fmt.Println("only 4 cacheserver.")
     }
 }
 
@@ -53,14 +64,71 @@ func handleGet(w http.ResponseWriter, key string) {
         fmt.Fprintln(w, "{\""+key+"\":\""+server.cache[key]+"\"}")
         return
     }
-
-    w.WriteHeader(http.StatusNotFound)
+    else//if we can't find in this machine ,we search the another two 
+    {
+      val1,err1:=CacheGet(client[0],&pb.SetRequest{Key:key})
+      if err1!=nil{
+          val2,err2:=CacheGet(client[1],&pb.SetRequest{Key:key})
+          if err2!=nil{
+            val3,err3:=CacheGet(client[2],&pb.SetRequest{Key:key})
+            if err3!=nil{
+                w.WriteHeader(http.StatusNotFound)
+            }
+            else
+            {
+              w.WriteHeader(http.StatusOK)
+              w.Header().Set("Content-Type", "application/json")
+              fmt.Fprintln(w, "{\""+key+"\":\""+val3+"\"}")
+              return
+            }
+            //   w.WriteHeader(http.StatusNotFound)
+        }
+          else
+          {
+            w.WriteHeader(http.StatusOK)
+            w.Header().Set("Content-Type", "application/json")
+            fmt.Fprintln(w, "{\""+key+"\":\""+val2+"\"}")
+            return
+          }
+      }
+      else
+      {
+        w.WriteHeader(http.StatusOK)
+        w.Header().Set("Content-Type", "application/json")
+        fmt.Fprintln(w, "{\""+key+"\":\""+val1+"\"}")
+        return
+      }
+    }
+    // else//if we can't find in this machine ,we search the another two 
+    // {
+    //   val1,err1:=CacheGet(client[0],&pb.SetRequest{Key:key})
+    //   if err1!=nil{
+    //       val2,err2:=CacheGet(client[1],&pb.SetRequest{Key:key})
+    //       if err2!=nil{
+    //           w.WriteHeader(http.StatusNotFound)
+    //     }
+    //       else
+    //       {
+    //         w.WriteHeader(http.StatusOK)
+    //         w.Header().Set("Content-Type", "application/json")
+    //         fmt.Fprintln(w, "{\""+key+"\":\""+val2+"\"}")
+    //         return
+    //       }
+    //   }
+    //   else
+    //   {
+    //     w.WriteHeader(http.StatusOK)
+    //     w.Header().Set("Content-Type", "application/json")
+    //     fmt.Fprintln(w, "{\""+key+"\":\""+val1+"\"}")
+    //     return
+    //   }
+    // }
 }
 
 // http Set handler
 func handleSet(w http.ResponseWriter, jsonstr string) {
 
-    reg := regexp.MustCompile(`{\s*"(.*)"\s*:\s*"(.*)"\s*}`)
+    reg := regexp.MustCompile(`{\s*"(.*?)"\s*:\s*(\[(.*?)\]|"(.*?)"|(\d+))\s*}`)
     if reg == nil { 
         fmt.Println("regexp err")
         return
@@ -71,8 +139,6 @@ func handleSet(w http.ResponseWriter, jsonstr string) {
     fmt.Println("set", key, ":", value)
 
     server.cache[key] = value
-    CacheSet(client[0], &pb.SetRequest{Key:key, Value:value})
-    CacheSet(client[1], &pb.SetRequest{Key:key, Value:value})
 
     w.WriteHeader(http.StatusOK)
 }
@@ -82,16 +148,63 @@ func handleDelete(w http.ResponseWriter, key string) {
     fmt.Println("delete", key)
     if _, ok:= server.cache[key]; ok {
         delete(server.cache, key)
-        CacheDelete(client[0], &pb.DeleteRequest{Key:key})
-        CacheDelete(client[1], &pb.DeleteRequest{Key:key})
-
         w.WriteHeader(http.StatusOK)
-        fmt.Fprintln(w, "1")
+        fmt.Fprintln(w, "1")//delete successfully 
         return
     }
+    else{
+        err1:=CacheDelete(client[0],&pb.DeleteRequest{Key:key})
+        if err1!=nil{
+            err2:=CacheDelete(client[1],&pb.DeleteRequest{Key:key})
+            if err2!=nil{
+                err3:=CacheDelete(client[2],&pb.DeleteRequest{Key:key})
+                if err3!=nil{
+                    w.WriteHeader(http.StatusOK)
+                    fmt.Fprintln(w, "0")//no need to delete
+                    return
+                }
+                else{
+                    w.WriteHeader(http.StatusOK)
+                    fmt.Fprintln(w, "1")//delete successfully 
+                    return
+                }
+            }
+            else{
+                w.WriteHeader(http.StatusOK)
+                fmt.Fprintln(w, "1")//delete successfully 
+                return
+            }
+        }
+        else{
+            w.WriteHeader(http.StatusOK)
+            fmt.Fprintln(w, "1")//delete successfully 
+            return
+        }
+    }
 
-    w.WriteHeader(http.StatusOK)
-    fmt.Fprintln(w, "0")
+
+    // else{
+    //     err1:=CacheDelete(client[0],&pb.DeleteRequest{Key:key})
+    //     if err1!=nil{
+    //         err2:=CacheDelete(client[1],&pb.DeleteRequest{Key:key})
+    //         if err2!=nil{
+    //             w.WriteHeader(http.StatusOK)
+    //             fmt.Fprintln(w, "0")//no need to delete
+    //             return
+    //         }
+    //         else{
+    //             w.WriteHeader(http.StatusOK)
+    //             fmt.Fprintln(w, "1")//delete successfully 
+    //             return
+    //         }
+    //     }
+    //     else{
+    //         w.WriteHeader(http.StatusOK)
+    //         fmt.Fprintln(w, "1")//delete successfully 
+    //         return
+    //     }
+    // }
+    
 }
 
 // http request handler
@@ -115,18 +228,15 @@ func handleHttpRequest(w http.ResponseWriter, r *http.Request) {
 // cacheserver type 
 type cacheServer struct {
     pb.UnimplementedCacheServer
-    cache map[string]string
+    cache map[string]interface{}
 }
 
 // rpc server Get handler
 func (s *cacheServer) GetCache (ctx context.Context, req *pb.GetRequest) (*pb.GetReply, error) {
-    return &pb.GetReply{Key:req.Key, Value:s.cache[req.Key]}, nil
-}
-
-// rpc server Set handler
-func (s *cacheServer) SetCache (ctx context.Context, req *pb.SetRequest) (*pb.SetReply, error) {
-    s.cache[req.Key] = req.Value
-    return &pb.SetReply{}, nil
+    if _,ok:=s.cache[req.key];ok{
+        return &pb.GetReply{Key:req.Key, Value:s.cache[req.Key]}, nil
+    }
+    
 }
 
 // rpc server Delete handler
@@ -137,6 +247,10 @@ func (s *cacheServer) DeleteCache (ctx context.Context, req *pb.DeleteRequest) (
     }
     return &pb.DeleteReply{Num: 0}, nil
 }
+
+
+
+
 
 func startHttpServer() {
     http.HandleFunc("/", handleHttpRequest)
@@ -156,7 +270,7 @@ func startRpcServer() {
 
     var opts []grpc.ServerOption
     grpcServer := grpc.NewServer(opts...)
-    server = cacheServer{cache: make(map[string]string)}
+    server = cacheServer{cache: make(map[string]interface{})}
     pb.RegisterCacheServer(grpcServer, &server)
     grpcServer.Serve(lis)
 }
