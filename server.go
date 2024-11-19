@@ -42,6 +42,51 @@ func setAddress() {
 	}
 }
 
+
+// // http Get handler
+// func handleGet(w http.ResponseWriter, key string) {
+// 	fmt.Println("get", key)
+
+// 	// 检查缓存中是否存在指定的键
+// 	if value, ok := server.cache[key]; ok {
+// 		// 如果找到了缓存，设置响应头
+// 		w.WriteHeader(http.StatusOK)
+// 		w.Header().Set("Content-Type", "application/json")
+
+// 		// 断言缓存值为 *GetReply 类型
+// 		reply.Val
+// 		if reply, ok := value.(&pb.GetReply); ok {
+// 			// 根据 oneof 字段的类型处理不同的情况
+// 			switch v := reply.GetValue().(type) {
+// 			case *GetReply_IntValue:
+// 				// 如果是 int32 类型
+// 				fmt.Fprintf(w, "{\"%s\":%d}\n", key, v.IntValue)
+// 			case *GetReply_StringValue:
+// 				// 如果是 string 类型
+// 				fmt.Fprintf(w, "{\"%s\":\"%s\"}\n", key, v.StringValue)
+// 			case *GetReply_StringArray:
+// 				// 如果是 StringArray 类型
+// 				items := v.StringArray.Values
+// 				// 将 StringArray 转换成 JSON 格式
+// 				fmt.Fprintf(w, "{\"%s\":%v}\n", key, items)
+// 			default:
+// 				// 如果类型不匹配
+// 				fmt.Println("Unknown type in oneof field")
+// 				w.WriteHeader(http.StatusInternalServerError)
+// 			}
+// 		} else {
+// 			// 如果缓存值不是 *GetReply 类型
+// 			fmt.Println("Cached value is not a GetReply")
+// 			w.WriteHeader(http.StatusInternalServerError)
+// 		}
+// 		return
+// 	} else {
+// 		// 如果缓存中没有该键，返回 404 错误
+// 		w.WriteHeader(http.StatusNotFound)
+// 	}
+// }
+
+
 // http Get handler
 func handleGet(w http.ResponseWriter, key string) {
 	fmt.Println("get", key)
