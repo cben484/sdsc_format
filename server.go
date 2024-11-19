@@ -111,8 +111,9 @@ func handleGet(w http.ResponseWriter, key string) {
 // http Set handler
 func handleSet(w http.ResponseWriter, jsonstr string) {
 
-	reg := regexp.MustCompile(`{\s*"(.*)"\s*:\s*"(.*)"\s*}`)
+	// reg := regexp.MustCompile(`{\s*"(.*)"\s*:\s*"(.*)"\s*}`)
 	// reg := regexp.MustCompile(`{\s*"(.*?)"\s*:\s*(\[(.*?)\]|"(.*?)"|(\d+))\s*}`)
+	reg := regexp.MustCompile(`{\s*"(.*)"\s*:\s*"(.*)"|\[(.*)\]|(\d+)\s*}`)
 	if reg == nil {
 		fmt.Println("regexp err")
 		return
