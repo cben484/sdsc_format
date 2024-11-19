@@ -10,7 +10,7 @@ import (
 	"os"
 	"regexp"
 	"google.golang.org/grpc"
-	pb "hxzhong/cacheserver/cache"
+	pb "ywc/cacheserver/cache"
 )
 
 var server cacheServer // server instace

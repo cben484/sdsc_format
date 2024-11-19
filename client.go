@@ -7,7 +7,7 @@ import (
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
-	pb "hxzhong/cacheserver/cache"
+	pb "ywc/cacheserver/cache"
 )
 
 func setupClient() {

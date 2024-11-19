@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-option go_package = "hxzhong/cacheserver/cache";
+option go_package = "ywc/cacheserver/cache";
 
 package cache;
 
