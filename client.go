@@ -27,15 +27,8 @@ func setupClient() {
 	}
 	fmt.Println("Set up client for", address[3])
 
-	conn[2], err = grpc.Dial(address[4], opts...)
-	if err != nil {
-		fmt.Println("fail to dial: %v", err)
-	}
-	fmt.Println("Set up client for", address[4])
-
 	client[0] = pb.NewCacheClient(conn[0])
 	client[1] = pb.NewCacheClient(conn[1])
-	client[2] = pb.NewCacheClient(conn[2])
 
 }
 

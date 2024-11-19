@@ -9,15 +9,14 @@ import (
 	"net/http"
 	"os"
 	"regexp"
-
 	"google.golang.org/grpc"
 	pb "hxzhong/cacheserver/cache"
 )
 
 var server cacheServer // server instace
-var address [5]string
-var client [3]pb.CacheClient // 2 rpc client to communicate with the other 2 rpc server
-var conn [3]*grpc.ClientConn // 2 connection for 2 rpc client
+var address [4]string
+var client [2]pb.CacheClient // 2 rpc client to communicate with the other 2 rpc server
+var conn [2]*grpc.ClientConn // 2 connection for 2 rpc client
 
 func setAddress() {
 	if os.Args[1] == "1" { // set address variable by server index
@@ -26,30 +25,20 @@ func setAddress() {
 
 		address[2] = "127.0.0.1:9551" // another server's rpc server port
 		address[3] = "127.0.0.1:9552" // another server's rpc server port
-		address[4] = "127.0.0.1:9553"
 	} else if os.Args[1] == "2" {
 		address[0] = "127.0.0.1:9528"
 		address[1] = "127.0.0.1:9551"
 
 		address[2] = "127.0.0.1:9550"
 		address[3] = "127.0.0.1:9552"
-		address[4] = "127.0.0.1:9553"
 	} else if os.Args[1] == "3" {
 		address[0] = "127.0.0.1:9529"
 		address[1] = "127.0.0.1:9552"
 
 		address[2] = "127.0.0.1:9550"
 		address[3] = "127.0.0.1:9551"
-		address[4] = "127.0.0.1:9553"
-	} else if os.Args[1] == "4" {
-		address[0] = "127.0.0.1:9526"
-		address[1] = "127.0.0.1:9553"
-
-		address[2] = "127.0.0.1:9550"
-		address[3] = "127.0.0.1:9551"
-		address[4] = "127.0.0.1:9552"
 	} else {
-		fmt.Println("only 4 cacheserver.")
+		fmt.Println("only 3 cacheserver.")
 	}
 }
 
@@ -73,21 +62,7 @@ func handleGet(w http.ResponseWriter, key string) {
 		if err1 != nil {
 			val2, err2 := CacheGet(client[1], &pb.GetRequest{Key: key})
 			if err2 != nil {
-				val3, err3 := CacheGet(client[2], &pb.GetRequest{Key: key})
-				if err3 != nil {
-					w.WriteHeader(http.StatusNotFound)
-				} else {
-					w.WriteHeader(http.StatusOK)
-					w.Header().Set("Content-Type", "application/json")
-					cachedValue, ok := val3.(string)
-					if !ok {
-						fmt.Println("Cached value is not a string")
-						return
-					}
-					fmt.Fprintln(w, "{\""+key+"\":\""+cachedValue+"\"}")
-					return
-				}
-				//   w.WriteHeader(http.StatusNotFound)
+				w.WriteHeader(http.StatusNotFound)
 			} else {
 				w.WriteHeader(http.StatusOK)
 				w.Header().Set("Content-Type", "application/json")
@@ -111,30 +86,6 @@ func handleGet(w http.ResponseWriter, key string) {
 			return
 		}
 	}
-	// else//if we can't find in this machine ,we search the another two
-	// {
-	//   val1,err1:=CacheGet(client[0],&pb.SetRequest{Key:key})
-	//   if err1!=nil{
-	//       val2,err2:=CacheGet(client[1],&pb.SetRequest{Key:key})
-	//       if err2!=nil{
-	//           w.WriteHeader(http.StatusNotFound)
-	//     }
-	//       else
-	//       {
-	//         w.WriteHeader(http.StatusOK)
-	//         w.Header().Set("Content-Type", "application/json")
-	//         fmt.Fprintln(w, "{\""+key+"\":\""+val2+"\"}")
-	//         return
-	//       }
-	//   }
-	//   else
-	//   {
-	//     w.WriteHeader(http.StatusOK)
-	//     w.Header().Set("Content-Type", "application/json")
-	//     fmt.Fprintln(w, "{\""+key+"\":\""+val1+"\"}")
-	//     return
-	//   }
-	// }
 }
 
 // http Set handler
@@ -163,54 +114,25 @@ func handleDelete(w http.ResponseWriter, key string) {
 		w.WriteHeader(http.StatusOK)
 		fmt.Fprintln(w, "1") //delete successfully
 		return
-	} else {
-		err1 := CacheDelete(client[0], &pb.DeleteRequest{Key: key})
-		if err1 != nil {
-			err2 := CacheDelete(client[1], &pb.DeleteRequest{Key: key})
-			if err2 != nil {
-				err3 := CacheDelete(client[2], &pb.DeleteRequest{Key: key})
-				if err3 != nil {
-					w.WriteHeader(http.StatusOK)
-					fmt.Fprintln(w, "0") //no need to delete
-					return
-				} else {
-					w.WriteHeader(http.StatusOK)
-					fmt.Fprintln(w, "1") //delete successfully
-					return
-				}
-			} else {
-				w.WriteHeader(http.StatusOK)
-				fmt.Fprintln(w, "1") //delete successfully
-				return
-			}
-		} else {
-			w.WriteHeader(http.StatusOK)
-			fmt.Fprintln(w, "1") //delete successfully
-			return
-		}
+	} else{
+	    err1 := CacheDelete(client[0],&pb.DeleteRequest{Key:key})
+	    if err1 != nil{
+	        err2 := CacheDelete(client[1],&pb.DeleteRequest{Key:key})
+	        if err2 != nil{
+	            w.WriteHeader(http.StatusOK)
+	            fmt.Fprintln(w, "0")//no need to delete
+	            return
+	        } else {
+	            w.WriteHeader(http.StatusOK)
+	            fmt.Fprintln(w, "1")//delete successfully
+	            return
+	        }
+	    } else {
+	        w.WriteHeader(http.StatusOK)
+	        fmt.Fprintln(w, "1")//delete successfully
+	        return
+	    }
 	}
-
-	// else{
-	//     err1:=CacheDelete(client[0],&pb.DeleteRequest{Key:key})
-	//     if err1!=nil{
-	//         err2:=CacheDelete(client[1],&pb.DeleteRequest{Key:key})
-	//         if err2!=nil{
-	//             w.WriteHeader(http.StatusOK)
-	//             fmt.Fprintln(w, "0")//no need to delete
-	//             return
-	//         }
-	//         else{
-	//             w.WriteHeader(http.StatusOK)
-	//             fmt.Fprintln(w, "1")//delete successfully
-	//             return
-	//         }
-	//     }
-	//     else{
-	//         w.WriteHeader(http.StatusOK)
-	//         fmt.Fprintln(w, "1")//delete successfully
-	//         return
-	//     }
-	// }
 
 }
 

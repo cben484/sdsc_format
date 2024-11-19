@@ -26,7 +26,7 @@ message GetReply {
 }
 
 message SetRequest {
-     string key = 1;
+    string key = 1;
     oneof value {
     int32 int_value = 2;             
     string string_value = 3;         
