@@ -32,6 +32,16 @@ func setupClient() {
 
 }
 
+// rpc client Set request
+func CacheSet(client pb.CacheClient, req *pb.SetRequest) {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	_, err := client.SetCache(ctx, req)
+	if err != nil {
+		fmt.Println("client.SetCache failed.")
+	}
+}
+
 // rpc client Get request
 func CacheGet(client pb.CacheClient, req *pb.GetRequest) (interface{}, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)

@@ -58,40 +58,61 @@ func handleGet(w http.ResponseWriter, key string) {
 		return
 	} else //if we can't find in this machine ,we search the another two
 	{
-		val1, err1 := CacheGet(client[0], &pb.GetRequest{Key: key})
-		if err1 != nil {
-			val2, err2 := CacheGet(client[1], &pb.GetRequest{Key: key})
-			if err2 != nil {
-				w.WriteHeader(http.StatusNotFound)
-			} else {
-				w.WriteHeader(http.StatusOK)
-				w.Header().Set("Content-Type", "application/json")
-				cachedValue, ok := val2.(string)
-				if !ok {
-					fmt.Println("Cached value is not a string")
-					return
-				}
-				fmt.Fprintln(w, "{\""+key+"\":\""+cachedValue+"\"}")
-				return
-			}
-		} else {
-			w.WriteHeader(http.StatusOK)
-			w.Header().Set("Content-Type", "application/json")
-			cachedValue, ok := val1.(string)
-			if !ok {
-				fmt.Println("Cached value is not a string")
-				return
-			}
-			fmt.Fprintln(w, "{\""+key+"\":\""+cachedValue+"\"}")
-			return
-		}
+		w.WriteHeader(http.StatusNotFound)
 	}
 }
+
+// func handleGet(w http.ResponseWriter, key string) {
+// 	fmt.Println("get", key)
+
+// 	if _, ok := server.cache[key]; ok {
+// 		w.WriteHeader(http.StatusOK)
+// 		w.Header().Set("Content-Type", "application/json")
+// 		cachedValue, ok := server.cache[key].(string)
+// 		if !ok {
+// 			fmt.Println("Cached value is not a string")
+// 			return
+// 		}
+// 		fmt.Fprintln(w, "{\""+key+"\":\""+cachedValue+"\"}")
+// 		return
+// 	} else //if we can't find in this machine ,we search the another two
+// 	{
+// 		val1, err1 := CacheGet(client[0], &pb.GetRequest{Key: key})
+// 		if err1 != nil {
+// 			val2, err2 := CacheGet(client[1], &pb.GetRequest{Key: key})
+// 			if err2 != nil {
+// 				w.WriteHeader(http.StatusNotFound)
+// 			} else {
+// 				w.WriteHeader(http.StatusOK)
+// 				w.Header().Set("Content-Type", "application/json")
+// 				cachedValue, ok := val2.(string)
+// 				if !ok {
+// 					fmt.Println("Cached value is not a string")
+// 					return
+// 				}
+// 				fmt.Fprintln(w, "{\""+key+"\":\""+cachedValue+"\"}")
+// 				return
+// 			}
+// 		} else {
+// 			w.WriteHeader(http.StatusOK)
+// 			w.Header().Set("Content-Type", "application/json")
+// 			cachedValue, ok := val1.(string)
+// 			if !ok {
+// 				fmt.Println("Cached value is not a string")
+// 				return
+// 			}
+// 			fmt.Fprintln(w, "{\""+key+"\":\""+cachedValue+"\"}")
+// 			return
+// 		}
+// 	}
+// }
+
 
 // http Set handler
 func handleSet(w http.ResponseWriter, jsonstr string) {
 
-	reg := regexp.MustCompile(`{\s*"(.*?)"\s*:\s*(\[(.*?)\]|"(.*?)"|(\d+))\s*}`)
+	reg := regexp.MustCompile(`{\s*"(.*)"\s*:\s*"(.*)"\s*}`)
+	// reg := regexp.MustCompile(`{\s*"(.*?)"\s*:\s*(\[(.*?)\]|"(.*?)"|(\d+))\s*}`)
 	if reg == nil {
 		fmt.Println("regexp err")
 		return
@@ -102,37 +123,52 @@ func handleSet(w http.ResponseWriter, jsonstr string) {
 	fmt.Println("set", key, ":", value)
 
 	server.cache[key] = value
+	CacheSet(client[0], &pb.SetRequest{Key: key, Value: value})
+    CacheSet(client[1], &pb.SetRequest{Key: key, Value: value})
 
 	w.WriteHeader(http.StatusOK)
+
 }
 
 // http Delete handler
 func handleDelete(w http.ResponseWriter, key string) {
 	fmt.Println("delete", key)
 	if _, ok := server.cache[key]; ok {
-		delete(server.cache, key)
-		w.WriteHeader(http.StatusOK)
-		fmt.Fprintln(w, "1") //delete successfully
-		return
-	} else{
-	    err1 := CacheDelete(client[0],&pb.DeleteRequest{Key:key})
-	    if err1 != nil{
-	        err2 := CacheDelete(client[1],&pb.DeleteRequest{Key:key})
-	        if err2 != nil{
-	            w.WriteHeader(http.StatusOK)
-	            fmt.Fprintln(w, "0")//no need to delete
-	            return
-	        } else {
-	            w.WriteHeader(http.StatusOK)
-	            fmt.Fprintln(w, "1")//delete successfully
-	            return
-	        }
-	    } else {
-	        w.WriteHeader(http.StatusOK)
-	        fmt.Fprintln(w, "1")//delete successfully
-	        return
-	    }
-	}
+        delete(server.cache, key)
+        CacheDelete(client[0], &pb.DeleteRequest{Key: key})
+        CacheDelete(client[1], &pb.DeleteRequest{Key: key})
+
+        w.WriteHeader(http.StatusOK)
+        fmt.Fprintln(w, "1")
+        return
+    }
+
+    w.WriteHeader(http.StatusOK)
+    fmt.Fprintln(w, "0")
+	// if _, ok := server.cache[key]; ok {
+	// 	delete(server.cache, key)
+	// 	w.WriteHeader(http.StatusOK)
+	// 	fmt.Fprintln(w, "1") //delete successfully
+	// 	return
+	// } else{
+	//     err1 := CacheDelete(client[0],&pb.DeleteRequest{Key:key})
+	//     if err1 != nil{
+	//         err2 := CacheDelete(client[1],&pb.DeleteRequest{Key:key})
+	//         if err2 != nil{
+	//             w.WriteHeader(http.StatusOK)
+	//             fmt.Fprintln(w, "0")//no need to delete
+	//             return
+	//         } else {
+	//             w.WriteHeader(http.StatusOK)
+	//             fmt.Fprintln(w, "1")//delete successfully
+	//             return
+	//         }
+	//     } else {
+	//         w.WriteHeader(http.StatusOK)
+	//         fmt.Fprintln(w, "1")//delete successfully
+	//         return
+	//     }
+	// }
 
 }
 
@@ -180,6 +216,12 @@ func (s *cacheServer) GetCache(ctx context.Context, req *pb.GetRequest) (*pb.Get
 		return reply, nil
 	}
 	return nil, fmt.Errorf("key not found in cache")
+}
+
+// rpc server Set handler
+func (s *cacheServer) SetCache (ctx context.Context, req *pb.SetRequest) (*pb.SetReply, error) {
+    s.cache[req.Key] = req.Value
+    return &pb.SetReply{}, nil
 }
 
 // rpc server Delete handler
